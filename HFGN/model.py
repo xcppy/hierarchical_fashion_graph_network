@@ -17,6 +17,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 from data import Dataset
 from data import recom_batch_train as recom_batch_generator
 from data import fltb_batch_train as fltb_batch_generator
+from data import batch_train as batch_generator
 from utility.helper import *
 import inferrence.fltb_test as fltb_test
 import inferrence.recommend_test as recom_test
@@ -27,7 +28,7 @@ args = parser.parse_args()
 class HFGN(object):
     def __init__(self, data_config, pretrain_data):
         # argument settings
-        self.model_type = 'HierGraph'
+        self.model_type = 'HFGN'
 
         self.pretrain_data = pretrain_data
 
@@ -47,16 +48,19 @@ class HFGN(object):
 
         self.lr_fltb = args.fltb_lr
         self.lr_recom = args.recom_lr
+        self.lr = args.lr
         self.r_view = args.r_view
 
         self.emb_dim = args.embed_size
         self.batch_size = args.batch_size
 
-        self.model_type += '_l%d' % (self.emb_dim)
+        self.model_type += '_emb%d' % (self.emb_dim)
+        self.model_type += '_train%d' % (args.train_mode)
 
         self.regs = args.regs
         self.decay = self.regs
-        # self.loss_weight = [1.0, 1.0]
+
+        self.loss_weight = [args.alpha, 1-args.alpha]
         self.cate_dim = self.emb_dim
 
         self.verbose = args.verbose
@@ -159,8 +163,9 @@ class HFGN(object):
 
         self.recom_loss = self.mf_loss + self.reg_loss
 
-        # self.loss = self.loss_weight[0]*self.mf_loss + self.loss_weight[1]*self.fltb_loss + self.reg_loss
+        self.loss = self.loss_weight[0]*self.fltb_loss + self.loss_weight[1]*self.mf_loss + self.reg_loss
 
+        self.opt  = tf.train.AdamOptimizer(learning_rate=self.lr).minimize(self.loss)
         self.opt_fltb = tf.train.AdamOptimizer(learning_rate=self.lr_fltb).minimize(self.fltb_loss)
         self.opt_recom = tf.train.AdamOptimizer(learning_rate=self.lr_recom).minimize(self.recom_loss)
 
@@ -530,9 +535,11 @@ if __name__ == '__main__':
     """
 
     t0 = time()
-    print('emb dim', args.embed_size, 'fltb lr', args.fltb_lr, 'recommend lr', args.recom_lr)
 
-
+    if args.train_mode == 0:
+        print('emb dim', args.embed_size, 'lr', args.lr)
+    elif args.train_mode == 1:
+        print('emb dim', args.embed_size, 'fltb lr', args.fltb_lr, 'recommend lr', args.recom_lr)
 
     if args.pretrain == -1:
         pretrain_data = load_pretrained_data()
@@ -547,8 +554,13 @@ if __name__ == '__main__':
     """
 
     if args.save_flag == 1: # layer_size: output sizes of every layer.
-        weights_save_path = '%sweights/%s/%s/%s/fl%s_rl%s' % (args.weights_path, args.dataset, model.model_type,
-                                                               str(args.embed_size), str(args.fltb_lr), str(args.recom_lr))
+        if args.train_mode == 0:
+            weights_save_path = '%sweights/%s/l%s' % (
+                args.weights_path, model.model_type, str(args.lr))
+        elif args.train_mode == 1:
+            weights_save_path = '%sweights/%s/fl%s_rl%s' % (
+                args.weights_path, model.model_type, str(args.fltb_lr),
+            str(args.recom_lr))
         ensureDir(weights_save_path)
 
         save_saver = tf.train.Saver(model.save_weights, max_to_keep=1)
@@ -562,10 +574,8 @@ if __name__ == '__main__':
     Reload the pretrained model parameters.
     """
     if args.pretrain == 1:
-        layer = '-'.join([str(l) for l in eval(args.layer_size)])
 
-        pretrain_path = '%sweights/%s/%s/%s/l%s_r%s' % (args.weights_path, args.dataset, model.model_type, layer,
-                                                        str(args.lr), '-'.join([str(r) for r in eval(args.regs)]))
+        pretrain_path = args.pretrain_path
 
         ckpt = tf.train.get_checkpoint_state(os.path.dirname(pretrain_path + '/checkpoint'))
         if ckpt and ckpt.model_checkpoint_path:
@@ -575,12 +585,12 @@ if __name__ == '__main__':
 
         else:
             sess.run(tf.global_variables_initializer())
-            cur_best_pre_0 = 0.
+            cur_best_hit_0 = 0.
             print('without pretraining.')
 
     else:
         sess.run(tf.global_variables_initializer())
-        cur_best_pre_0 = 0.
+        cur_best_hit_0 = 0.
         print('without pretraining.')
 
     sess.run(model.assign_feat, feed_dict={model._init_visual_feat: data_generator.visual_feat})
@@ -600,70 +610,111 @@ if __name__ == '__main__':
     stopping_step = 0
     should_stop = False
 
-    for epoch in range(args.epoch): # args.epoch
+    for epoch in range(args.epoch):  # args.epoch
         t1 = time()
 
         recom_loss, mf_loss, reg_loss, fltb_loss = 0., 0., 0., 0.
+        if args.train_mode == 0:
+            '''Train.'''
+            t1 = time()
+            '''generate all batches for the current epoch.'''
+            batch_begin = time()
+            batches = batch_generator.sample(data_generator=data_generator, batch_size=args.batch_size)
+            batch_time = time() - batch_begin
+            if epoch == 0:
+                print("batch_time", batch_time)
 
-        '''recommendation train.'''
-        batch_begin = time()
-        batches = recom_batch_generator.sample(data_generator=data_generator, batch_size=args.batch_size)
-        batch_time = time() - batch_begin
-        if epoch == 0:
-            print("batch_time", batch_time)
+            num_batch = len(batches[1])
+            batch_index = list(range(num_batch))
+            np.random.shuffle(batch_index)
 
-        num_batch = len(batches[1])
-        batch_index = list(range(num_batch))
-        np.random.shuffle(batch_index)
 
-        for idx in tqdm(batch_index, ascii=True):
-            u_batch, po_batch, plen_batch, no_batch, nlen_batch = recom_batch_generator.batch_get(batches, idx)
+            for idx in tqdm(batch_index, ascii=True):
+                u_batch, po_batch, plen_batch, no_batch, nlen_batch, \
+                f_batch, flen_batch, fadj_batch = batch_generator.batch_get(batches, idx)
 
-            _, batch_loss, batch_mf_loss, batch_reg_loss = sess.run(
-                [model.opt_recom, model.recom_loss, model.mf_loss, model.reg_loss],
-                feed_dict={model.user_input: u_batch, model.po_input: po_batch,
-                           model.pl_input: plen_batch, model.no_input: no_batch, model.nl_input: nlen_batch,
+                _, batch_loss, batch_mf_loss, batch_reg_loss, batch_fltb_loss = sess.run(
+                    [model.opt, model.loss, model.mf_loss, model.reg_loss, model.fltb_loss],
+                    feed_dict={model.user_input: u_batch, model.po_input: po_batch,
+                               model.pl_input: plen_batch, model.no_input: no_batch, model.nl_input: nlen_batch,
+                               model.fltb_input: f_batch, model.flen_input: flen_batch, model.fadj_input: fadj_batch,
+                               model.node_dropout: eval(args.node_dropout),
+                               model.mess_dropout: eval(args.mess_dropout)
+                               })
 
-                           model.node_dropout: eval(args.node_dropout),
-                           model.mess_dropout: eval(args.mess_dropout)
-                           })
+                recom_loss += batch_loss
+                mf_loss += batch_mf_loss
+                reg_loss += batch_reg_loss
+                fltb_loss += batch_fltb_loss
 
-            recom_loss += batch_loss
-            mf_loss += batch_mf_loss
-            reg_loss += batch_reg_loss
+            if args.verbose > 0 and epoch % args.verbose == 0:
+                perf_str = 'Epoch %d [%.1fs] recom loss: train==[%.5f= %.5f + %.5f]' % (
+                    epoch, time() - t1, recom_loss, mf_loss, reg_loss)
+                print(perf_str)
 
-        if args.verbose > 0 and epoch % args.verbose == 0:
-            perf_str = 'Epoch %d [%.1fs] recom loss: train==[%.5f= %.5f + %.5f]' % (
-                epoch, time() - t1, recom_loss, mf_loss, reg_loss)
-            print(perf_str)
+        elif args.train_mode == 1:
+            '''recommendation train.'''
+            t1 = time()
+            batch_begin = time()
+            batches = recom_batch_generator.sample(data_generator=data_generator, batch_size=args.batch_size)
+            batch_time = time() - batch_begin
+            if epoch == 0:
+                print("batch_time", batch_time)
 
-        '''fltb train.'''
-        batch_begin = time()
-        batches = fltb_batch_generator.sample(data_generator=data_generator, batch_size=args.batch_size)
-        batch_time = time() - batch_begin
-        if epoch == 0:
-            print("batch_time", batch_time)
+            num_batch = len(batches[1])
+            batch_index = list(range(num_batch))
+            np.random.shuffle(batch_index)
 
-        num_batch = len(batches[1])
-        batch_index = list(range(num_batch))
-        np.random.shuffle(batch_index)
+            for idx in tqdm(batch_index, ascii=True):
+                u_batch, po_batch, plen_batch, no_batch, nlen_batch = recom_batch_generator.batch_get(batches, idx)
 
-        for idx in tqdm(batch_index, ascii=True):
-            po_batch, plen_batch, f_batch, flen_batch, fadj_batch = fltb_batch_generator.batch_get(batches, idx)
+                _, batch_loss, batch_mf_loss, batch_reg_loss = sess.run(
+                    [model.opt_recom, model.recom_loss, model.mf_loss, model.reg_loss],
+                    feed_dict={model.user_input: u_batch, model.po_input: po_batch,
+                               model.pl_input: plen_batch, model.no_input: no_batch, model.nl_input: nlen_batch,
 
-            _, batch_fltb_loss = sess.run([model.opt_fltb, model.fltb_loss],
-                                          feed_dict={model.po_input: po_batch, model.pl_input: plen_batch,
-                                                     model.fltb_input: f_batch, model.flen_input: flen_batch,
-                                                     model.fadj_input: fadj_batch,
-                                                     model.node_dropout: eval(args.node_dropout),
-                                                     model.mess_dropout: eval(args.mess_dropout)
-                                                     })
-            fltb_loss += batch_fltb_loss
+                               model.node_dropout: eval(args.node_dropout),
+                               model.mess_dropout: eval(args.mess_dropout)
+                               })
 
-        if args.verbose > 0 and epoch % args.verbose == 0:
-            perf_str = 'Epoch %d [%.1fs] fltb loss: train==[%.5f]' % (
-                epoch, time() - t1, fltb_loss)
-            print(perf_str)
+                recom_loss += batch_loss
+                mf_loss += batch_mf_loss
+                reg_loss += batch_reg_loss
+
+            if args.verbose > 0 and epoch % args.verbose == 0:
+                perf_str = 'Epoch %d [%.1fs] recom loss: train==[%.5f= %.5f + %.5f]' % (
+                    epoch, time() - t1, recom_loss, mf_loss, reg_loss)
+                print(perf_str)
+
+            '''fltb train.'''
+            t1 = time()
+            batch_begin = time()
+            batches = fltb_batch_generator.sample(data_generator=data_generator, batch_size=args.batch_size)
+            batch_time = time() - batch_begin
+            if epoch == 0:
+                print("batch_time", batch_time)
+
+            num_batch = len(batches[1])
+            batch_index = list(range(num_batch))
+            np.random.shuffle(batch_index)
+
+            for idx in tqdm(batch_index, ascii=True):
+                po_batch, plen_batch, f_batch, flen_batch, fadj_batch = fltb_batch_generator.batch_get(batches, idx)
+
+                _, batch_fltb_loss = sess.run([model.opt_fltb, model.fltb_loss],
+                                              feed_dict={model.po_input: po_batch, model.pl_input: plen_batch,
+                                                         model.fltb_input: f_batch, model.flen_input: flen_batch,
+                                                         model.fadj_input: fadj_batch,
+                                                         model.node_dropout: eval(args.node_dropout),
+                                                         model.mess_dropout: eval(args.mess_dropout)
+                                                         })
+                fltb_loss += batch_fltb_loss
+
+            if args.verbose > 0 and epoch % args.verbose == 0:
+                perf_str = 'Epoch %d [%.1fs] fltb loss: train==[%.5f]' % (
+                    epoch, time() - t1, fltb_loss)
+                print(perf_str)
+
 
         if (epoch) % 5 != 0:
             continue
@@ -704,17 +755,17 @@ if __name__ == '__main__':
             perf_str = 'Epoch %d : accuracy=[%.5f]' % (epoch, fltb_ret['auc'][0])
             print(perf_str)
 
-        cur_best_pre_0, stopping_step, should_stop = early_stopping(recom_ret['hit_ratio'][0], cur_best_pre_0,
+        cur_best_hit_0, stopping_step, should_stop = early_stopping(recom_ret['hit_ratio'][0], cur_best_hit_0,
                                                                     stopping_step, expected_order='acc', flag_step=5)
 
         # *********************************************************
-        # early stopping when cur_best_pre_0 is decreasing for ten successive steps.
+        # early stopping when cur_best_hit_0 is decreasing for ten successive steps.
         if should_stop == True:
             break
 
         # *********************************************************
         # save the user & outfit embeddings for pretraining.
-        if recom_ret['hit_ratio'][0] == cur_best_pre_0 and args.save_flag == 1:
+        if recom_ret['hit_ratio'][0] == cur_best_hit_0 and args.save_flag == 1:
             save_saver.save(sess, weights_save_path + '/weights', global_step=epoch)
             print('save the weights in path: ', weights_save_path)
 
@@ -734,11 +785,16 @@ if __name__ == '__main__':
                   '\t'.join(['%.5f' % r for r in ndcgs[idx]]))
     print(final_perf)
 
-    save_path = '%soutput/%s/%s.result' % (args.proj_path, args.dataset, model.model_type)
+    save_path = '%soutput/%s.result' % (args.proj_path,model.model_type)
     ensureDir(save_path)
     f = open(save_path, 'a')
 
-    f.write(
-        'embed_size=%d, fltb_lr=%.4f, recom_lr=%.4f, embed_size=%s, regs=%s \n\t%s\n'
-        % (args.embed_size, args.fltb_lr, args.recom_lr, args.embed_size, args.regs, final_perf))
+    if args.train_mode == 0:
+        f.write(
+            'embed_size=%d, lr=%.4f, embed_size=%s, regs=%s \n\t%s\n'
+            % (args.embed_size, args.lr, args.embed_size, args.regs, final_perf))
+    elif args.train_mode == 1:
+        f.write(
+            'embed_size=%d, fltb_lr=%.4f, recom_lr=%.4f, embed_size=%s, regs=%s \n\t%s\n'
+            % (args.embed_size, args.fltb_lr, args.recom_lr, args.embed_size, args.regs, final_perf))
     f.close()

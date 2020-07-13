@@ -36,10 +36,13 @@ def parse_args():
                         help='Regularizations.')
     parser.add_argument('--r_view', type=int, default=8,
                         help='R view nums.')
+    parser.add_argument('--lr', type=float, default=0.001,
+                        help='Learning rate.')
 
     parser.add_argument('--fltb_lr', type=float, default=0.01,
                         help='Learning rate for FLTB.')
-    parser.add_argument('--recom_lr', type=float, default=0.0001,
+
+    parser.add_argument('--recom_lr', type=float, default=0.001,
                         help='Learning rate for recommendation.')
 
     parser.add_argument('--model_type', nargs='?', default='HFGN',
@@ -59,5 +62,11 @@ def parse_args():
                         help='Top-K evaluation.')
     parser.add_argument('--save_flag', type=int, default=1,
                         help='0: Disable model saver, 1: Activate model saver')
+    parser.add_argument('--train_mode', type=int, default=0,
+                        help='0: optimize one loss; 1: optimize two loss')
+    parser.add_argument('--alpha', type=float, default=0.5,
+                        help='parameter for fltb loss.')
+    parser.add_argument('--pretrain_path',nargs='?', default='',
+                        help='pretrain data load path.')
 
     return parser.parse_args()
