@@ -617,7 +617,7 @@ if __name__ == '__main__':
         if args.train_mode == 0:
             '''Train.'''
             t1 = time()
-            '''generate all batches for the current epoch.'''
+            # generate all batches for the current epoch.
             batch_begin = time()
             batches = batch_generator.sample(data_generator=data_generator, batch_size=args.batch_size)
             batch_time = time() - batch_begin
@@ -648,8 +648,8 @@ if __name__ == '__main__':
                 fltb_loss += batch_fltb_loss
 
             if args.verbose > 0 and epoch % args.verbose == 0:
-                perf_str = 'Epoch %d [%.1fs] recom loss: train==[%.5f= %.5f + %.5f + %.5f]' % (
-                    epoch, time() - t1, recom_loss, mf_loss, reg_loss, fltb_loss)
+                perf_str = 'Epoch %d [%.1fs] train==[loss=%.5f mf_loss= %.5f, reg_loss=%.5f, fltb_loss=%.5f]' % (
+                epoch, time() - t1, recom_loss, mf_loss, reg_loss, fltb_loss)
                 print(perf_str)
 
         elif args.train_mode == 1:
