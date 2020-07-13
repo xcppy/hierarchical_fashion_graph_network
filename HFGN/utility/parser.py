@@ -36,13 +36,13 @@ def parse_args():
                         help='Regularizations.')
     parser.add_argument('--r_view', type=int, default=8,
                         help='R view nums.')
-    parser.add_argument('--lr', type=float, default=0.001,
+    parser.add_argument('--lr', type=float, default=0.0001,
                         help='Learning rate.')
 
     parser.add_argument('--fltb_lr', type=float, default=0.01,
                         help='Learning rate for FLTB.')
 
-    parser.add_argument('--recom_lr', type=float, default=0.001,
+    parser.add_argument('--recom_lr', type=float, default=0.0001,
                         help='Learning rate for recommendation.')
 
     parser.add_argument('--model_type', nargs='?', default='HFGN',
