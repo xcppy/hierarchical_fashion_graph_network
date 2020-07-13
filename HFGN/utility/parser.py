@@ -19,7 +19,7 @@ def parse_args():
                         help='Project path.')
 
     parser.add_argument('--dataset', nargs='?', default='pog',
-                        help='Choose a dataset from {gowalla, yelp2018, amazon-book}')
+                        help='Choose a dataset')
     parser.add_argument('--pretrain', type=int, default=0,
                         help='0: No pretrain, -1: Pretrain with the learned embeddings, 1:Pretrain with stored models.')
     parser.add_argument('--verbose', type=int, default=1,
@@ -45,7 +45,7 @@ def parse_args():
     parser.add_argument('--model_type', nargs='?', default='HFGN',
                         help='Specify the name of model (HFGN).')
 
-    parser.add_argument('--gpu_id', type=int, default=1,
+    parser.add_argument('--gpu_id', type=int, default=0,
                         help='0 for NAIS_prod, 1 for NAIS_concat')
 
     parser.add_argument('--node_dropout_flag', type=int, default=1,

@@ -266,7 +266,7 @@ class HFGN(object):
         return fltb_loss
 
 
-    def _compatibility_score(self, ilatents): # [b,5,dim]
+    def _compatibility_score(self, ilatents,ilen): # [b,5,dim]
 
         b = tf.shape(ilatents)[0]
         m = tf.shape(ilatents)[1]
