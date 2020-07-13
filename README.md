@@ -16,7 +16,7 @@ If you want to use our codes and datasets in your research, please cite:
                Jun Xiao and
                Tat{-}Seng Chua},
   title     = {Hierarchical Fashion Graph Network for Personalized Outfit Recommendation},
-  booktitle = {Proceedings of the 43nd International {ACM} {SIGIR} Conference on
+  booktitle = {Proceedings of the 43rd International {ACM} {SIGIR} Conference on
                Research and Development in Information Retrieval, {SIGIR} 2020.},
   year      = {2020},
 }
