@@ -744,5 +744,5 @@ if __name__ == '__main__':
 
     f.write(
         'embed_size=%d, fltb_lr=%.4f, recom_lr=%.4f, embed_size=%s, regs=%s \n\t%s\n'
-        % (args.embed_size, args.ftlb_lr, args.recom_lr, args.embed_size, args.regs, final_perf))
+        % (args.embed_size, args.fltb_lr, args.recom_lr, args.embed_size, args.regs, final_perf))
     f.close()
