@@ -28,8 +28,6 @@ class HFGN(object):
     def __init__(self, data_config, pretrain_data):
         # argument settings
         self.model_type = 'HierGraph'
-        # self.adj_type = args.adj_type
-        # self.alg_type = args.alg_type
 
         self.pretrain_data = pretrain_data
 
@@ -39,7 +37,6 @@ class HFGN(object):
         self.n_cates = data_config['n_cates']
         self.max_ol = data_config['max_ol']
         self.save_weights = []
-        # self.cate_adj = data_config['cate_adj']
 
         self.n_fold = 100
 
@@ -59,7 +56,7 @@ class HFGN(object):
 
         self.regs = args.regs
         self.decay = self.regs
-        self.loss_weight = [1.0, 1.0]
+        # self.loss_weight = [1.0, 1.0]
         self.cate_dim = self.emb_dim
 
         self.verbose = args.verbose
@@ -226,18 +223,12 @@ class HFGN(object):
 
     def _get_outfit_hier_embed(self, neighs, nodes):
 
-        N = tf.shape(neighs)[0]
-        m = tf.shape(neighs)[1]
-        d = tf.shape(neighs)[2]
-        # att = tf.reshape(tf.multiply(neighs, ego_), [-1, d]) # [N,d]
-        # att = tf.reshape(tf.nn.sigmoid(tf.matmul(att, self.weights['Wo_att'])), [N, m, 1]) # [N*5, 1]
         neigh_ = tf.reduce_sum(neighs, axis=1)  # [N, d]
         neigh_mess = tf.nn.leaky_relu(
                 tf.matmul(neigh_,  self.weights['Wo_mess']) + self.weights['bo_mess'])  #[N,d]
         neigh_mess = tf.nn.l2_normalize(neigh_mess, axis=-1)
 
         new_nodes = tf.add(neigh_mess, nodes)
-        # new_nodes =tf.nn.l2_normalize(new_nodes, axis=-1)
 
         return new_nodes
 
@@ -264,16 +255,7 @@ class HFGN(object):
 
         neigh_mess = tf.nn.l2_normalize(neigh_mess, axis=-1)
 
-        # inter_ = tf.multiply(side_embeddings, Xu)  # [N,d]
-        # inter_mess = tf.nn.leaky_relu(
-        #     tf.matmul(inter_, self.weights['Wu_inter']) + self.weights['bu_inter'])
-        # neigh_mess = tf.reduce_sum(tf.multiply(att, neigh_mess))  # [N,d]
-
-        # ego_mess = tf.nn.leaky_relu(
-        #     tf.matmul(Xu, self.weights['Wu_ego']) + self.weights['bu_ego'])  # [N, d]
-
         new_nodes = tf.add(neigh_mess, Xu)
-        # new_nodes = tf.nn.l2_normalize(new_nodes, axis=-1)
 
         return new_nodes
 
@@ -284,7 +266,7 @@ class HFGN(object):
         return fltb_loss
 
 
-    def _compatibility_score(self, ilatents, ilen, scale=1.0): # [b,5,dim]
+    def _compatibility_score(self, ilatents): # [b,5,dim]
 
         b = tf.shape(ilatents)[0]
         m = tf.shape(ilatents)[1]
