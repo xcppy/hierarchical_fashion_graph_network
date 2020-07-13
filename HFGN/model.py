@@ -134,12 +134,8 @@ class HFGN(object):
         self.fltb_pos_graph_feat = tf.nn.embedding_lookup(self.all_outfit_graph_feat, self.po_input)
         self.fltb_neg_graph_feat = self._get_outfit_graph_feat(self.fadj_input, self.fltb_neg_feat, self.flen_input)
 
-
         self.fltb_pos_scores = self._compatibility_score(self.fltb_pos_graph_feat, self.pl_input)
         self.fltb_neg_scores = self._compatibility_score(self.fltb_neg_graph_feat, self.flen_input)
-
-        # fltb loss
-        self.fltb_loss = self._create_fltb_loss(self.fltb_pos_scores, self.fltb_neg_scores)
 
         self.outfit_hier_embedding = self._get_outfit_hier_embed(self.all_outfit_graph_feat, self.outfit_embedding)
         self.user_hier_embedding = self._get_user_hier_node(self.uo_adj, self.outfit_hier_embedding, self.user_embedding)
@@ -149,14 +145,15 @@ class HFGN(object):
         self.neg_i_g_embeddings = tf.nn.embedding_lookup(self.outfit_hier_embedding, self.no_input)
 
 
-        """
-        Inference for the testing phase.
-        """
+        # Inference for the testing phase.
         self.batch_ratings = tf.matmul(self.u_g_embeddings, self.pos_i_g_embeddings, transpose_a=False, transpose_b=True)
 
         """
-        Generate Predictions & Optimize via BPR loss.
+        Generate Predictions & Optimize.
         """
+        # fltb loss
+        self.fltb_loss = self._create_fltb_loss(self.fltb_pos_scores, self.fltb_neg_scores)
+
         self.mf_loss, self.emb_loss, self.reg_loss = self.create_bpr_loss(self.u_g_embeddings,
                                                                           self.pos_i_g_embeddings,
                                                                           self.neg_i_g_embeddings)
