@@ -605,7 +605,7 @@ if __name__ == '__main__':
     *********************************************************
     Train.
     """
-    loss_loger, pre_loger, rec_loger, ndcg_loger, hit_loger = [], [], [], [], []
+    pre_loger, rec_loger, ndcg_loger, hit_loger = [], [], [], []
     fltb_auc_loger = []
     stopping_step = 0
     should_stop = False
@@ -633,8 +633,8 @@ if __name__ == '__main__':
                 u_batch, po_batch, plen_batch, no_batch, nlen_batch, \
                 f_batch, flen_batch, fadj_batch = batch_generator.batch_get(batches, idx)
 
-                _, batch_loss, batch_mf_loss, batch_reg_loss, batch_fltb_loss = sess.run(
-                    [model.opt, model.loss, model.mf_loss, model.reg_loss, model.fltb_loss],
+                _, batch_loss, batch_recom_loss, batch_mf_loss, batch_reg_loss, batch_fltb_loss = sess.run(
+                    [model.opt, model.loss, model.recom_loss, model.mf_loss, model.reg_loss, model.fltb_loss],
                     feed_dict={model.user_input: u_batch, model.po_input: po_batch,
                                model.pl_input: plen_batch, model.no_input: no_batch, model.nl_input: nlen_batch,
                                model.fltb_input: f_batch, model.flen_input: flen_batch, model.fadj_input: fadj_batch,
@@ -648,8 +648,8 @@ if __name__ == '__main__':
                 fltb_loss += batch_fltb_loss
 
             if args.verbose > 0 and epoch % args.verbose == 0:
-                perf_str = 'Epoch %d [%.1fs] recom loss: train==[%.5f= %.5f + %.5f]' % (
-                    epoch, time() - t1, recom_loss, mf_loss, reg_loss)
+                perf_str = 'Epoch %d [%.1fs] recom loss: train==[%.5f= %.5f + %.5f + %.5f]' % (
+                    epoch, time() - t1, recom_loss, mf_loss, reg_loss, fltb_loss)
                 print(perf_str)
 
         elif args.train_mode == 1:
@@ -733,13 +733,13 @@ if __name__ == '__main__':
 
         t3 = time()
 
-        loss_loger.append(recom_loss)
         rec_loger.append(recom_ret['recall'])
         pre_loger.append(recom_ret['precision'])
         ndcg_loger.append(recom_ret['ndcg'])
         hit_loger.append(recom_ret['hit_ratio'])
 
         if args.verbose > 0:
+            print('recommendation test...')
             perf_str = 'Epoch %d [%.1fs + %.1fs]: recall=[%.5f, %.5f], ' \
                        'precision=[%.5f, %.5f], hit=[%.5f, %.5f], ndcg=[%.5f, %.5f]' % \
                        (epoch, t2 - t1, t3 - t2, recom_ret['recall'][0], recom_ret['recall'][-1],
@@ -751,7 +751,7 @@ if __name__ == '__main__':
         fltb_auc_loger.append(fltb_ret['auc'])
 
         if args.verbose > 0:
-            print('fltb...')
+            print('fltb test...')
             perf_str = 'Epoch %d : accuracy=[%.5f]' % (epoch, fltb_ret['auc'][0])
             print(perf_str)
 
