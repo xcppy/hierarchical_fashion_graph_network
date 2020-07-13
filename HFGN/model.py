@@ -605,35 +605,6 @@ if __name__ == '__main__':
 
         recom_loss, mf_loss, reg_loss, fltb_loss = 0., 0., 0., 0.
 
-        '''fltb train.'''
-        batch_begin = time()
-        batches = fltb_batch_generator.sample(data_generator=data_generator, batch_size=args.batch_size)
-        batch_time = time() - batch_begin
-        if epoch == 0:
-            print("batch_time", batch_time)
-
-        num_batch = len(batches[1])
-        batch_index = list(range(num_batch))
-        np.random.shuffle(batch_index)
-
-        for idx in tqdm(batch_index, ascii=True):
-            po_batch, plen_batch, f_batch, flen_batch, fadj_batch = fltb_batch_generator.batch_get(batches, idx)
-
-            _, batch_fltb_loss = sess.run([model.opt_fltb, model.fltb_loss],
-                                          feed_dict={model.po_input: po_batch, model.pl_input: plen_batch,
-                                                     model.fltb_input: f_batch, model.flen_input: flen_batch,
-                                                     model.fadj_input: fadj_batch,
-                                                     model.node_dropout: eval(args.node_dropout),
-                                                     model.mess_dropout: eval(args.mess_dropout)
-                                                     })
-            fltb_loss += batch_fltb_loss
-
-        if args.verbose > 0 and epoch % args.verbose == 0:
-            perf_str = 'Epoch %d [%.1fs] fltb loss: train==[%.5f]' % (
-                epoch, time() - t1, fltb_loss)
-            print(perf_str)
-
-
         '''recommendation train.'''
         batch_begin = time()
         batches = recom_batch_generator.sample(data_generator=data_generator, batch_size=args.batch_size)
@@ -666,6 +637,33 @@ if __name__ == '__main__':
                 epoch, time() - t1, recom_loss, mf_loss, reg_loss)
             print(perf_str)
 
+        '''fltb train.'''
+        batch_begin = time()
+        batches = fltb_batch_generator.sample(data_generator=data_generator, batch_size=args.batch_size)
+        batch_time = time() - batch_begin
+        if epoch == 0:
+            print("batch_time", batch_time)
+
+        num_batch = len(batches[1])
+        batch_index = list(range(num_batch))
+        np.random.shuffle(batch_index)
+
+        for idx in tqdm(batch_index, ascii=True):
+            po_batch, plen_batch, f_batch, flen_batch, fadj_batch = fltb_batch_generator.batch_get(batches, idx)
+
+            _, batch_fltb_loss = sess.run([model.opt_fltb, model.fltb_loss],
+                                          feed_dict={model.po_input: po_batch, model.pl_input: plen_batch,
+                                                     model.fltb_input: f_batch, model.flen_input: flen_batch,
+                                                     model.fadj_input: fadj_batch,
+                                                     model.node_dropout: eval(args.node_dropout),
+                                                     model.mess_dropout: eval(args.mess_dropout)
+                                                     })
+            fltb_loss += batch_fltb_loss
+
+        if args.verbose > 0 and epoch % args.verbose == 0:
+            perf_str = 'Epoch %d [%.1fs] fltb loss: train==[%.5f]' % (
+                epoch, time() - t1, fltb_loss)
+            print(perf_str)
 
         if (epoch) % 5 != 0:
             continue
@@ -708,8 +706,6 @@ if __name__ == '__main__':
 
         cur_best_pre_0, stopping_step, should_stop = early_stopping(recom_ret['hit_ratio'][0], cur_best_pre_0,
                                                                     stopping_step, expected_order='acc', flag_step=5)
-
-
 
         # *********************************************************
         # early stopping when cur_best_pre_0 is decreasing for ten successive steps.
