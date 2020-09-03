@@ -25,8 +25,10 @@ The composed items for all the outfits.
 
 ## fltb_feat_resnet152_02.npy
 The visual features for all the items. The size is N * D.
-> The model we used to extract the visual features is downloaded from [here](https://github.com/tensorflow/models/tree/master/research/slim).
-> We use the model **ResNet V1 152**.
+
+ N is the number of items, D is the dimensionality of the feature.
+ The model we used to extract the visual features is downloaded from [here](https://github.com/tensorflow/models/tree/master/research/slim).
+ We use the model *ResNet V1 152* to extract 2048D visual features.
 
 ## fltb_item_cate2.txt
 The category files for items.
