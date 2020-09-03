@@ -1,5 +1,5 @@
 # Dataset.
-Our experiment is based on the POG datasest (https://github.com/wenyuer/POG).
+Our experiment is based on the [POG datasest](https://github.com/wenyuer/POG).
 
 we reprocess the data and save the files here.
 
@@ -24,8 +24,9 @@ The composed items for all the outfits.
 ```
 
 ## fltb_feat_resnet152_02.npy
-The visual features for all the items. The size is $N_{item}\times D_{feature}$.
-
+The visual features for all the items. The size is N * D.
+> The model we used to extract the visual features is downloaded from [here](https://github.com/tensorflow/models/tree/master/research/slim).
+> We use the model **ResNet V1 152**.
 
 ## fltb_item_cate2.txt
 The category files for items.
