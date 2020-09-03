@@ -24,9 +24,8 @@ The composed items for all the outfits.
 ```
 
 ## fltb_feat_resnet152_02.npy
-```
- The visual features for all the items. The size is $N_{item}\times D_{feature}$.
-```
+The visual features for all the items. The size is $N_{item}\times D_{feature}$.
+
 
 ## fltb_item_cate2.txt
 The category files for items.
@@ -37,10 +36,10 @@ The category files for items.
 ## fltb_test_file.txt
 The test files for fill in the blank task.
 ```
- outfit_id;outfit_length(int);mask_position(int);*pos_outfit*;*neg_outfit*;*neg_outfit*;*neg_outfit*
+ outfit_id; outfit_length(int); mask_position(int); pos_outfit; neg_outfit; neg_outfit; neg_outfit
  
- *pos_outfit*: item_id,item_id,...
- *neg_outfit*: item_id,item_id,...
+ pos_outfit: item_id, item_id, ...
+ neg_outfit: item_id, item_id, ...
 ```
 
 
