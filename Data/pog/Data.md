@@ -37,10 +37,10 @@ The category files for items.
 ## fltb_test_file.txt
 The test files for fill in the blank task.
 ```
- outfit_id;outfit_length(int);mask_position(int);pos_outfit;neg_outfit;neg_outfit;neg_outfit
+ outfit_id;outfit_length(int);mask_position(int);*pos_outfit*;*neg_outfit*;*neg_outfit*;*neg_outfit*
  
- pos_outfit: item_id,item_id,...
- neg_outfit: item_id,item_id,...
+ *pos_outfit*: item_id,item_id,...
+ *neg_outfit*: item_id,item_id,...
 ```
 
 
