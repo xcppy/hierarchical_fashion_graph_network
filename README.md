@@ -35,6 +35,6 @@ python model.py -regs 1e-5 --embed_size 64 --batch_size 1024
 
 > For Fill in the Blank (FLTB) task, we only optimize the compatibility loss: L_{com}.
 
-> For Personalized outfit Recommendation task, we use the pretrained FLTB model to intialized the personalized outfit model to obtain better performance.
+> For Personalized outfit Recommendation task, we use the pretrained FLTB model to intialized the whole model to obtain better performance.
 
 
