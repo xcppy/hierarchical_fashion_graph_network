@@ -22,14 +22,19 @@ If you want to use our codes and datasets in your research, please cite:
 }
 ```
 
-## Run the Codes
-```
-python model.py -regs 1e-5 --embed_size 64 --batch_size 1024
-```
+## Dataset
+
+> Our experiment are based on [POG dataset](https://github.com/wenyuer/POG). We reprocess the data and save the files, and the file format is listed in [Data/pog](https://github.com/xcppy/hierarchical_fashion_graph_network/blob/master/Data/pog/Data.md). 
+
 
 ## Environment
 > tensorflow == 1.10.1
 > python == 3.6
+
+## Run the Codes
+```
+python model.py -regs 1e-5 --embed_size 64 --batch_size 1024
+```
 
 ## Train the model
 
